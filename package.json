@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "selfcontroller",
   "title": "SelfController",
-  "description": "To run SelfControl using typing",
+  "description": "A raycast extension that executes selfcontrol via typing.",
   "icon": "command-icon.png",
   "author": "snrhdgtzrf",
   "categories": [
@@ -22,8 +22,8 @@
     {
       "name": "index",
       "title": "SelfController",
-      "subtitle": "run SelfControl using type",
-      "description": "To run SelfControl using typing",
+      "subtitle": "Run SelfControl through Typing",
+      "description": "A raycast extension that executes selfcontrol via typing.",
       "mode": "view"
     }
   ],
