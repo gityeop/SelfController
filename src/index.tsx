@@ -17,6 +17,38 @@ const SelfControlForm = () => {
     }
   }, []);
 
+  const waitForSecurityAgent = (timeout: number) => {
+    return new Promise<void>((resolve, reject) => {
+      const interval = 100; // 100ms 간격으로 검사
+      let elapsed = 0;
+
+      const check = () => {
+        exec(
+          `osascript -e 'tell application "System Events" to count processes whose name is "SecurityAgent"'`,
+          (error, stdout, stderr) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+
+            if (parseInt(stdout.trim()) > 0) {
+              resolve();
+            } else {
+              elapsed += interval;
+              if (elapsed >= timeout) {
+                reject(new Error("SecurityAgent did not start within the expected time"));
+              } else {
+                setTimeout(check, interval);
+              }
+            }
+          },
+        );
+      };
+
+      check();
+    });
+  };
+
   const handleSubmit = async () => {
     if (!time) {
       showToast(ToastStyle.Failure, "Please enter a time duration");
@@ -35,63 +67,76 @@ const SelfControlForm = () => {
         return;
       }
 
-      const activateSelfControl = new Promise<void>((resolve, reject) => {
-        const script = `osascript -e 'tell application "SelfControl" to activate'`;
+      const activateSelfControl = () =>
+        new Promise<void>((resolve, reject) => {
+          const script = `
+          osascript -e 'tell application "SelfControl" to activate'`;
 
-        exec(script, (error, stdout, stderr) => {
-          if (error) {
-            console.error(`Activate SelfControl error: ${stderr}`);
-            reject(error);
-          } else {
-            console.log(`Activate SelfControl output: ${stdout}`);
-            resolve();
-          }
+          exec(script, (error, stdout, stderr) => {
+            if (error) {
+              console.error(`Activate SelfControl error: ${stderr}`);
+              reject(error);
+            } else {
+              console.log(`Activate SelfControl output: ${stdout}`);
+              resolve();
+            }
+          });
         });
-      });
 
-      const setSliderValue = new Promise<void>((resolve, reject) => {
-        const script = `
-          osascript -e 'tell application "System Events"
-            tell process "SelfControl"
-              tell slider 1 of window 1
-                set value to ${duration}
-              end tell
-            end tell
-          end tell'
+      const setSliderValue = () =>
+        new Promise<void>((resolve, reject) => {
+          const script = `
+          osascript -e 'delay 0.2' \
+                    -e 'tell application "System Events"
+                          tell process "SelfControl"
+                            tell slider 1 of window 1
+                              set value to ${duration}
+                            end tell
+                          end tell
+                        end tell'
         `;
 
-        exec(script, (error, stdout, stderr) => {
-          if (error) {
-            console.error(`Set Slider Value error: ${stderr}`);
-            reject(error);
-          } else {
-            console.log(`Set Slider Value output: ${stdout}`);
-            resolve();
-          }
+          exec(script, (error, stdout, stderr) => {
+            if (error) {
+              console.error(`Set Slider Value error: ${stderr}`);
+              reject(error);
+            } else {
+              console.log(`Set Slider Value output: ${stdout}`);
+              resolve();
+            }
+          });
         });
-      });
 
-      const clickStartButton = new Promise<void>((resolve, reject) => {
-        const script = `osascript -e 'tell application "System Events" to tell process "SelfControl" to click button "시작" of window 1'`;
+      const clickStartButton = () =>
+        new Promise<void>((resolve, reject) => {
+          const script = `
+          osascript -e 'delay 0.1' \
+                    -e 'tell application "System Events" to tell process "SelfControl" to click button "시작" of window 1'
+        `;
 
-        exec(script, (error, stdout, stderr) => {
-          if (error) {
-            console.error(`Click Start Button error: ${stderr}`);
-            reject(error);
-          } else {
-            console.log(`Click Start Button output: ${stdout}`);
-            resolve();
-          }
+          exec(script, (error, stdout, stderr) => {
+            if (error) {
+              console.error(`Click Start Button error: ${stderr}`);
+              reject(error);
+            } else {
+              console.log(`Click Start Button output: ${stdout}`);
+              resolve();
+            }
+          });
         });
-      });
+
+      await activateSelfControl();
+      await setSliderValue();
+      await clickStartButton();
+      await waitForSecurityAgent(5000); // 최대 5초 동안 SecurityAgent가 활성화되기를 기다림
 
       const passwordInput = new Promise<void>((resolve, reject) => {
         setTimeout(() => {
           const script = `
             osascript -e 'tell application "System Events" to tell process "SecurityAgent" to set frontmost to true' \
-                      -e 'delay 0.4' \
+                      -e 'delay 0.1' \
                       -e 'tell application "System Events" to keystroke "${password}"' \
-                      -e 'delay 0.2' \
+                      -e 'delay 0.1' \
                       -e 'tell application "System Events" to keystroke return'
           `;
 
@@ -107,7 +152,7 @@ const SelfControlForm = () => {
         }, 200); // 대기 시간을 200밀리초로 설정
       });
 
-      await Promise.all([activateSelfControl, setSliderValue, clickStartButton, passwordInput]);
+      await passwordInput;
 
       showToast(ToastStyle.Success, `SelfControl started for ${duration} minutes`);
     } catch (err: any) {
