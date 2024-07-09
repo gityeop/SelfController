@@ -1,3 +1,3 @@
 # SelfController
 
-To run SelfControl using typing
+A raycast extension that executes selfcontrol via typing.
