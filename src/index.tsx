@@ -111,7 +111,7 @@ const SelfControlForm = () => {
         new Promise<void>((resolve, reject) => {
           const script = `
           osascript -e 'delay 0.1' \
-                    -e 'tell application "System Events" to tell process "SelfControl" to click button "시작" of window 1'
+                    -e 'tell application "System Events" to tell process "SelfControl" to keystroke return'
         `;
 
           exec(script, (error, stdout, stderr) => {
